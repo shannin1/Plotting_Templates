@@ -250,7 +250,7 @@ def getfilepaths(process,year,data):
             return filepaths
         elif process=='QCD':
             filepaths=[]
-            QCD_ranges=['700to1000','1000to1500','1500to2000','2000toinf']
+            QCD_ranges=['700to1000','1000to1500','1500to2000','2000toInf']
             for range in QCD_ranges:
                 newfile=base_path+'templates_QCD_HT'+range+'_'+year+'.root'    
                 if not os.path.exists(newfile):
@@ -282,9 +282,9 @@ def getfilepaths(process,year,data):
 if __name__ == '__main__':
     wp = "tight_medium"
 
-    #years=['2016','2016APV','2017','2018']
+    years=['2016','2016APV','2017','2018']
     processes=['QCD','TTToHadronic','TTToSemiLeptonic']#['MXMY','QCD','TTToHadronic','TTToSemiLeptonic']
-    years=['2016']
+    #years=['2016']
 
     for year in years:
         filepaths=[]
