@@ -23,61 +23,181 @@ r.gStyle.SetOptFit(111)
 
 base_path='/uscms_data/d3/roguljic/el8_anomalous/el9_fitting/templates_v2/'
 
-
-def makehistograms(mcpath,datapath,year,process):    
+def plot(histosData,edgesData,colorsData,labelsData,histosSig,edgesSig,colorsSig,labelsSig,Pass):
+    QCD=[]
+    #QCDedges=[]
+    nonQCDhistos=[]
+    #nonQCDedges=[]
+    nonQCDcolors=[]
+    nonQCDlabels=[]
+    outlinecolors=[]
+    for i in range(len(histosSig)):
+        if 'QCD' in labelsSig[i]:
+            QCD.append(histosSig[i])
+            #QCDedges.append(edgesSig[i])
+        else:
+            nonQCDhistos.append(histosSig[i])
+            #nonQCDedges.append(edgesSig[i])
+            nonQCDcolors.append(colorsSig[i])
+            nonQCDlabels.append(labelsSig[i])
+            outlinecolors.append('dimgray')
+            print(labelsSig[i])
     
-    print(mcpath)
-    print(datapath)
+    QCDhistos=[]
+    for j in range(len(QCD[0])):
+        val=0
+        for histo in QCD:
+            val+=histo[j]
+        QCDhistos.append(val)
+
 
     log=True
+    
+    plt.style.use([hep.style.CMS])
+    f, ax = plt.subplots()
 
-    histos  = []
-    labels  = []
-    edges   = []
-    colors  = []
-    histosData = []#we're assuming only one data_obs dataset
-    edgesData  = []#it's still kept in array (with one element) to be similar to other processes
-    colorsData = []
-    labelsData = []
-    histosSig  = [0,0]#we're assuming only one signal dataset
-    edgesSig   = [0,0]#it's still kept in array (with one element) to be similar to other processes
-    labelsSig  = [0,0]
-    colorsSig  = [0,0]
+    hep.histplot(QCDhistos,edgesSig[0],stack=False,ax=ax,label=['QCD'],linewidth=3,histtype="fill",color=['burlywood'])
+    hep.histplot(QCDhistos,edgesSig[0],stack=False,ax=ax,linewidth=3,histtype="step",color=['dimgray'])
+    hep.histplot(nonQCDhistos,edgesSig[0],stack=False,ax=ax,label=nonQCDlabels,linewidth=3,histtype="fill",color=nonQCDcolors)
+    hep.histplot(nonQCDhistos,edgesSig[0],stack=False,ax=ax,linewidth=3,histtype="step",color=outlinecolors)
+    hep.histplot(histosData,edgesData[0],stack=False,ax=ax,label=labelsData,linewidth=3,histtype="errorbar",color=colorsData)
+
+    if(log):
+        ax.set_yscale("log")
+
+    if log:
+        yTitle='log(NEvents)'
+    else:
+        yTitle='NEvents'
+    xTitle='mjj'
+
+    ax.set_ylabel(yTitle)
+    ax.set_xlabel(xTitle)
+    plt.xlabel(xTitle, horizontalalignment='right', x=1.0)
+    plt.ylabel(yTitle,horizontalalignment='right', y=1.0)
+    if Pass:
+        hep.cms.text("Simulation WiP CR Pass " + year,loc=0)
+    else:
+        hep.cms.text("Simulation WiP CR Fail " + year,loc=0)
+    plt.legend(loc='upper right',ncol=2)#loc="best",ncol=2)#loc = 'best'
+    plt.tight_layout()
+    if Pass:
+        outFile='CRPass_'+year+'_mjj'
+    else:
+        outFile='CRFail_'+year+'_mjj'
+    print("Saving {0}".format(outFile))
+
+    plt.savefig(outFile)
+    plt.savefig(outFile.replace(".png",".pdf"))
+
+    plt.clf()
+
+    return
+
+def makehistograms(mcpaths,datapath,year):
+    
+    histosDataPass = []
+    edgesDataPass  = []
+    colorsDataPass = []
+    labelsDataPass = []
+    histosSigPass  = []
+    edgesSigPass   = []
+    labelsSigPass  = []
+    colorsSigPass  = []
+
+    histosDataFail = []
+    edgesDataFail  = []
+    colorsDataFail = []
+    labelsDataFail = []
+    histosSigFail  = []
+    edgesSigFail   = []
+    labelsSigFail  = []
+    colorsSigFail  = []
+
+    print(year)
+    for item in mcpaths:
+
+        #print(mcpaths)
+        mcpath=item[0]
+        process=item[1]
+        mcsig=r.TFile.Open(mcpath)
+        mckeys=mcsig.GetListOfKeys()
+        for key in mckeys:
+            keyname=key.GetName()
+            if '_nom' not in keyname:
+                continue
+            if 'SR' in keyname:
+                #print('No histogram created')
+                continue
+            if 'Pass' in keyname:
+                pf_flag=True
+                #index=1
+            elif 'Fail' in keyname:
+                pf_flag=False
+                #index=0
+            else:
+                print('pf_flag error')
+
+            if process=='TTToHadronic':
+                color='cornflowerblue'
+            elif process=='TTToSemiLeptonic':
+                color='darkblue'
+            elif 'QCD' in process:
+                color='burlywood'
+                """if '700to1000' in process:
+                    color='r'
+                elif '1000to1500' in process:
+                    color='g'
+                elif '1500to2000' in process:
+                    color='b'
+                elif '2000toinf' in process:
+                    color='m'"""
+            """elif 'MX' in process:
+                if '1200' in process:
+                    color=''
+                elif '1400' in process:
+                    color=''
+                elif '1600' in process:
+                    color=''
+                elif '1800' in process:
+                    color=''
+                elif '2000' in process:
+                    color=''
+                elif '2200' in process:
+                    color=''
+                elif '' in process:
+                    color=''
+                elif '' in process:
+                    color=''
+                elif '' in process:
+                    color=''"""
+                
+
+            print('Creating histogram for mc ',process,keyname)
+            h=mcsig.Get(keyname)
+            projection = h.ProjectionX("proj_name")
+            hist, edges = hist2array(projection,return_edges=True)
+            if pf_flag:
+                histosSigPass.append(hist)
+                labelsSigPass.append(process)
+                colorsSigPass.append(color)
+                edgesSigPass.append(edges[0])
+            else:
+                histosSigFail.append(hist)
+                labelsSigFail.append(process)
+                colorsSigFail.append(color)
+                edgesSigFail.append(edges[0])
 
 
-    mcsig=r.TFile.Open(mcpath)
-    data=r.TFile.Open(datapath)
-
-    mckeys=mcsig.GetListOfKeys()
+    #print(datapath)
+    data=r.TFile.Open(datapath[0][0])
+    process=datapath[0][1]
     datakeys=data.GetListOfKeys()
-        
-    for key in mckeys:
-        keyname=key.GetName()
-        if 'SR' in keyname:
-            print('No histogram created')
-            continue
-        if 'Pass' in keyname:
-            pf_flag=True
-            index=1
-        elif 'Fail' in keyname:
-            pf_flag=False
-            index=0
-        else:
-            print('pf_flag error')
-        print('Creating histogram for mc ',keyname)
-        h=mcsig.Get(keyname)
-        projection = h.ProjectionX("proj_name")
-        hist, edges = hist2array(projection,return_edges=True)
-        histosSig[index]=hist
-        if pf_flag:
-            labelsSig[index]='CR Pass MC'
-            colorsSig[index]='r'
-        else:
-            labelsSig[index]='CR Fail MC'
-            colorsSig[index]='b'
-        edgesSig[index]=edges[0]
 
     for key in datakeys:
+
+        color='k'
+
         keyname=key.GetName()
         if 'SR' in keyname:
             print('No histogram created')
@@ -92,52 +212,21 @@ def makehistograms(mcpath,datapath,year,process):
         h=data.Get(keyname)
         projection = h.ProjectionX("proj_name")
         hist, edges = hist2array(projection,return_edges=True)
-        histosData.append(hist)
         if pf_flag:
-            labelsData.append('CR Pass data')
-            colorsData.append('r')
+            histosDataPass.append(hist)
+            labelsDataPass.append(process)
+            colorsDataPass.append(color)
+            edgesDataPass.append(edges[0])
         else:
-            labelsData.append('CR Fail data')
-            colorsData.append('b')
-        edgesData.append(edges[0])
-        
+            histosDataFail.append(hist)
+            labelsDataFail.append(process)
+            colorsDataFail.append(color)
+            edgesDataFail.append(edges[0])
 
-    plt.style.use([hep.style.CMS])
-    f, ax = plt.subplots()
-
-    hep.histplot(histosSig,edgesSig[0],stack=False,ax=ax,label=labelsSig,linewidth=3,histtype="fill",color=colors)
-    hep.histplot(histosData,edgesData[0],stack=False,ax=ax,label=labelsData,linewidth=3,histtype="errorbar",color=colors)
-    if(log):
-        ax.set_yscale("log")
-    #ax.legend()
-
-    if log:
-        yTitle='log(NEvents)'
-    else:
-        yTitle='NEvents'
-    xTitle='mjj'
-
-    ax.set_ylabel(yTitle)
-    ax.set_xlabel(xTitle)
-    plt.xlabel(xTitle, horizontalalignment='right', x=1.0)
-    plt.ylabel(yTitle,horizontalalignment='right', y=1.0)
-    hep.cms.text("Simulation WiP "+process+" " + year,loc=0)
-    plt.legend(loc='upper right',ncol=2)#loc="best",ncol=2)#loc = 'best'
-    plt.tight_layout()
-    if not log:
-        outFile=process+year+'mjj'
-    else:
-        outFile='log'+process+year+'mjj'
-    print("Saving {0}".format(outFile))
-
-    plt.savefig(outFile)
-    plt.savefig(outFile.replace(".png",".pdf"))
-
-    plt.clf()
-
+    plot(histosDataPass,edgesDataPass,colorsDataPass,labelsDataPass,histosSigPass,edgesSigPass,colorsSigPass,labelsSigPass,True)
+    plot(histosDataFail,edgesDataFail,colorsDataFail,labelsDataFail,histosSigFail,edgesSigFail,colorsSigFail,labelsSigFail,False)
 
     return
-
 
 def getfilepaths(process,year,data):
     if data:
@@ -146,7 +235,7 @@ def getfilepaths(process,year,data):
         if not os.path.exists(newfile):
             print('File does not exist: ',newfile)
         else:
-            filepaths.append(newfile)
+            filepaths.append([newfile,year+' data'])
         return filepaths
     else:
         if process=='MXMY':
@@ -157,7 +246,7 @@ def getfilepaths(process,year,data):
                 if not os.path.exists(newfile):
                     print('File does not exist: ',newfile)
                 else:
-                    filepaths.append(newfile)
+                    filepaths.append([newfile,'MX '+MX+' MY 90'])
             return filepaths
         elif process=='QCD':
             filepaths=[]
@@ -167,7 +256,7 @@ def getfilepaths(process,year,data):
                 if not os.path.exists(newfile):
                     print('File does not exist: ',newfile)
                 else:
-                    filepaths.append(newfile)
+                    filepaths.append([newfile,'QCD '+range])
             return filepaths
         elif process=='TTToHadronic':
             filepaths=[]
@@ -175,7 +264,7 @@ def getfilepaths(process,year,data):
             if not os.path.exists(newfile):
                 print('File does not exist: ',newfile)
             else:
-                filepaths.append(newfile)
+                filepaths.append([newfile,process])
             return filepaths
         elif process=='TTToSemiLeptonic':
             filepaths=[]
@@ -183,7 +272,7 @@ def getfilepaths(process,year,data):
             if not os.path.exists(newfile):
                 print('File does not exist: ',newfile)
             else:
-                filepaths.append(newfile)
+                filepaths.append([newfile,process])
             return filepaths
         else:
             print("Invalid process name")
@@ -194,14 +283,15 @@ if __name__ == '__main__':
     wp = "tight_medium"
 
     #years=['2016','2016APV','2017','2018']
-    #processes=['MXMY','QCD','TTToHadronic','TTToSemiLeptonic']
+    processes=['QCD','TTToHadronic','TTToSemiLeptonic']#['MXMY','QCD','TTToHadronic','TTToSemiLeptonic']
     years=['2016']
-    processes=['TTToSemiLeptonic']
 
     for year in years:
+        filepaths=[]
         for process in processes:
             mcpaths=getfilepaths(process,year,False)
-            data=getfilepaths('x',year,True)
-            for mcpath in mcpaths:
-                makehistograms(mcpath,data[0],year,process)
+            for item in mcpaths:
+                filepaths.append(item)
+        data=getfilepaths('x',year,True)
+        makehistograms(filepaths,data,year,)
             
